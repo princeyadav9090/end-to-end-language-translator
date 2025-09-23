@@ -1,6 +1,9 @@
 from transformers import AutoTokenizer
 import torch 
 from model import Seq2SeqEncDec
+from fastapi import FastAPI
+from pydantic import BaseModel
+import pickle
 
 src_sent_tokenizer = AutoTokenizer.from_pretrained("google-T5/T5-base")
 
@@ -9,12 +12,23 @@ if torch.cuda.is_available():
 else:
     device = torch.device("cpu")
 
-network = Seq2SeqEncDec(len(Vs),len(Vd),128).to(device)
+if torch.cuda.is_available():
+    network = Seq2SeqEncDec(len(Vs),len(Vd),128).to("cuda")
+else:
+    network = Seq2SeqEncDec(len(Vs),len(Vd),128).to("cpu")
 
 if torch.cuda.is_available():
-    network.load_state_dict(torch.load("model.pth",map_location="cuda:0"))
+    network.load_state_dict(torch.load("seq2seq_model.pth",map_location="cuda:0"))
 else:
-    network.load_state_dict(torch.load("model.pth",))
+    network.load_state_dict(torch.load("seq2seq_model.pth",map_location="cpu"))
+
+network.eval() 
+
+with open("dst-lang-vocab2idx.pkl","rb") as file_handle:
+    Vd = pickle.load(file_handle)
+
+with open("dst-lang-idx2vocab.pkl","rb") as file_handle:
+    hindi_idx2vocab = pickle.load(file_handle)
 
 # This is the code of inference
 
@@ -74,3 +88,19 @@ def generate_translation(eng_sentence): # this function will accept a string lik
         hindi_translated_sentence += " " + hindi_idx2vocab[generated_token_id.item()]
 
     return hindi_translated_sentence
+
+class TranslateRequest(BaseModel):
+    text:str
+
+app = FastAPI()
+    
+@app.post("/translate")
+def translate(request: TranslateRequest):
+
+    if not request.text:
+        raise HTTPException(status_code=400,detail="The english sentence to be translated is missing")
+    try:
+        hindi_translated_sentence = generate_translation(request.text)
+        return {"hindi translation": hindi_translated_sentence}
+    except Exception as e:
+        raise HTTPException(status_code=500,detail=str(e))
