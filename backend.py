@@ -11,6 +11,11 @@ else:
 
 network = Seq2SeqEncDec(len(Vs),len(Vd),128).to(device)
 
+if torch.cuda.is_available():
+    network.load_state_dict(torch.load("model.pth",map_location="cuda:0"))
+else:
+    network.load_state_dict(torch.load("model.pth",))
+
 # This is the code of inference
 
 def generate_translation(eng_sentence): # this function will accept a string like : "My name is Arjun" , whichj will be given by the user from frontend which is a streamlet page
