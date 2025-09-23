@@ -4,6 +4,12 @@ from model import Seq2SeqEncDec
 
 src_sent_tokenizer = AutoTokenizer.from_pretrained("google-T5/T5-base")
 
+if torch.cuda.is_available():
+    device = torch.device("cuda")
+else:
+    device = torch.device("cpu")
+
+network = Seq2SeqEncDec(len(Vs),len(Vd),128).to(device)
 
 # This is the code of inference
 
