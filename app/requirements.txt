@@ -1,0 +1,6 @@
+transformers
+fastapi
+uvicorn
+pydantic
+requests
+streamlit

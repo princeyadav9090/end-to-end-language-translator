@@ -1,5 +1,0 @@
-indic-nlp-library
-numpy
-pandas
-transformers
-torch --index-url https://download.pytorch.org/whl/cpu
